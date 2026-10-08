@@ -96,7 +96,7 @@ main{
 
 .keys{display:grid;grid-template-columns:repeat(5,1fr);column-gap:9px;row-gap:3px;margin-top:14px}
 .kw{display:flex;flex-direction:column;min-width:0}
-.alt{display:flex;justify-content:space-between;align-items:flex-end;height:13px;padding:0 1px;font-size:8.6px;font-weight:600;font-stretch:72%;line-height:1;white-space:nowrap;overflow:visible}
+.alt{display:flex;justify-content:space-between;gap:3px;align-items:flex-end;height:13px;padding:0 1px;font-size:8.6px;font-weight:600;font-stretch:72%;line-height:1;white-space:nowrap;overflow:visible}
 .alt .l2{color:var(--second)}
 .alt .la{color:var(--alpha);margin-left:auto}
 .key{
@@ -226,6 +226,10 @@ dialog::backdrop{background:rgba(20,8,11,.6)}
     <p><kbd>STAT</kbd> <kbd>▶</kbd> <b>CALC</b> has 1-Var and 2-Var Stats and every regression: Med-Med, linear, quadratic, cubic, quartic, ln, exponential, power, logistic and sine. Add <code>,Y₁</code> at the end to store the equation for graphing. <kbd>STAT</kbd> <kbd>▶</kbd> <kbd>▶</kbd> <b>TESTS</b> opens fill-in screens for Z and T tests, 2-sample tests, proportion tests, confidence intervals, χ² tests, the F test, LinRegTTest and ANOVA. Use <kbd>◀</kbd> <kbd>▶</kbd> to pick options, then choose Calculate.</p>
     <p class="small"><kbd class="k2">2nd</kbd> <kbd>Y=</kbd> sets up three stat plots (scatter, line, histogram and box plots). <kbd>ZOOM</kbd> ZoomStat fits them to the screen, and <kbd>TRACE</kbd> steps through the points. <kbd class="k2">2nd</kbd> <kbd>VARS</kbd> has the normal, t, χ², F, binomial, Poisson and geometric distributions, with shaded graphs under DRAW. <kbd>VARS</kbd> <kbd>2</kbd> pastes results such as x̄, Sx, r or p into your own formulas.</p>
 
+    <h2>Fractions and history</h2>
+    <p><kbd class="ka">ALPHA</kbd> <kbd>Y=</kbd> opens the fraction menu. Type the top number, choose <b>n/d</b>, then type the bottom number: <code>1⁄2+1⁄3</code> gives <code>5⁄6</code>. <b>Un/d</b> makes mixed numbers (<code>1⌟1⁄2</code> is one and a half), and <b>►F◄►D</b> switches an answer between fraction and decimal.</p>
+    <p>Press <kbd>▲</kbd> on the home screen to highlight an earlier entry or answer, then <kbd>ENTER</kbd> to paste it into your current line. <kbd class="k2">2nd</kbd> <kbd>ENTER</kbd> brings back your last entries.</p>
+
     <h2>Everything else</h2>
     <p><kbd>MATH</kbd>, <kbd class="k2">2nd</kbd> <kbd>x⁻¹</kbd> matrices, <kbd class="k2">2nd</kbd> <kbd>STAT</kbd> list tools, <kbd class="k2">2nd</kbd> <kbd>APPS</kbd> angles, <kbd>PRGM</kbd> short programs, <kbd class="k2">2nd</kbd> <kbd>PRGM</kbd> drawing, <kbd class="k2">2nd</kbd> <kbd>STO→</kbd> recall, and <kbd>MODE</kbd> for decimals, notation and degrees. <kbd class="k2">2nd</kbd> <kbd>0</kbd> opens the catalog of every function.</p>
     <p class="small">Your keyboard works too: numbers and operators type directly, Enter evaluates, Backspace deletes, Esc clears, and letters type variables. Memory stays in this browser between visits.</p>
@@ -266,7 +270,7 @@ const FINV={'fN':'N','fI%':'I','fPV':'PV','fPMT':'PMT','fFV':'FV','fP/Y':'PY','f
 const WINV={wXmin:'Xmin',wXmax:'Xmax',wXscl:'Xscl',wYmin:'Ymin',wYmax:'Ymax',wYscl:'Yscl'};
 const MATV={mA:'A',mB:'B',mC:'C'};
 const DISP={neg:'⁻',inv:'⁻¹',EE:'ᴇ',econst:'e',L1:'L₁',L2:'L₂',L3:'L₃',L4:'L₄',L5:'L₅',L6:'L₆',
-  fN:'N','fI%':'I%',fPV:'PV',fPMT:'PMT',fFV:'FV','fP/Y':'P/Y','fC/Y':'C/Y',nPr:' nPr ',nCr:' nCr ',xroot:'ˣ√',
+  fN:'N','fI%':'I%',fPV:'PV',fPMT:'PMT',fFV:'FV','fP/Y':'P/Y','fC/Y':'C/Y',nPr:' nPr ',nCr:' nCr ',xroot:'ˣ√',frac:'⁄',mixed:'⌟',
   Y1:'Y₁',Y2:'Y₂',Y3:'Y₃',Y4:'Y₄',mA:'[A]',mB:'[B]',mC:'[C]',deg:'°',rad:'ʳ',tr:'ᵀ',
   wXmin:'Xmin',wXmax:'Xmax',wXscl:'Xscl',wYmin:'Ymin',wYmax:'Ymax',wYscl:'Yscl'};
 const disp=t=>DISP[t]??(typeof t==='string'&&t.startsWith('st:')?t.slice(3):t);
@@ -328,7 +332,7 @@ function fitNum(x,w){
   return '…';
 }
 function fracStr(x){
-  if(typeof x!=='number'||!isFinite(x)||Number.isInteger(x)) return null;
+  if(typeof x!=='number'||!isFinite(x)||Math.abs(x-Math.round(x))<1e-12*Math.max(1,Math.abs(x))) return null;
   const neg=x<0; const a=Math.abs(x);
   let h1=1,h0=0,k1=0,k0=1,b=a;
   for(let i=0;i<40;i++){
@@ -336,10 +340,19 @@ function fracStr(x){
     const h2=q*h1+h0, k2=q*k1+k0;
     if(k2>9999) break;
     h0=h1;h1=h2;k0=k1;k1=k2;
-    if(Math.abs(a-h1/k1)<1e-12*Math.max(1,a)) return (neg?'⁻':'')+h1+'/'+k1;
+    if(Math.abs(a-h1/k1)<1e-12*Math.max(1,a)) return (neg?'⁻':'')+h1+'⁄'+k1;
     const r=b-q; if(r<1e-15) break; b=1/r;
   }
   return null;
+}
+// mixed number: 7/3 -> 2⌟1⁄3
+function mixedStr(x){
+  if(typeof x!=='number'||!isFinite(x)) return null;
+  const a=Math.abs(x), w=Math.floor(a+1e-12);
+  if(w===0) return fracStr(x);
+  if(Math.abs(a-Math.round(a))<1e-12*Math.max(1,a)) return null;
+  const f=fracStr(a-w); if(!f) return null;
+  return (x<0?'⁻':'')+w+'⌟'+f;
 }
 function fmtDMS(x){
   const neg=x<0; const a=Math.abs(x); let d=Math.floor(a); let mf=(a-d)*60; let m=Math.floor(mf+1e-9);
@@ -347,10 +360,24 @@ function fmtDMS(x){
   return (neg?'⁻':'')+d+'°'+m+"'"+s+'"';
 }
 function fmtMat(m,f){ return m.map((r,i)=>(i?' ':'[')+'['+r.map(f).join(' ')+']'+(i===m.length-1?']':'')).join('\n'); }
+function strToTokens(str){ const m={'⁻':'neg','⌟':'mixed','⁄':'frac','ᴇ':'EE'}; return [...str].map(ch=>m[ch]||ch); }
+function numPaste(x,fmt){
+  if(fmt!=='dec'){ const s=fmt==='mixed'?mixedStr(x):fracStr(x); if(s) return strToTokens(s); }
+  return numToTokens(x);
+}
+function valToTokens(v){
+  if(v==null||v===DONE||typeof v==='object'&&(v.str!==undefined||v.info)) return null;
+  let fmt='dec', x=v;
+  if(v.frac!==undefined){ fmt=v.mixed?'mixed':'frac'; x=v.frac; } else if(v.dms!==undefined) x=v.dms;
+  const one=y=>numPaste(y,fmt);
+  if(isMat(x)){ const o=['[']; x.m.forEach(r=>{ o.push('['); r.forEach((y,j)=>{ if(j) o.push(','); o.push(...one(y)); }); o.push(']'); }); o.push(']'); return o; }
+  if(isList(x)){ const o=['{']; x.forEach((y,i)=>{ if(i) o.push(','); o.push(...one(y)); }); o.push('}'); return o; }
+  return typeof x==='number'?one(x):null;
+}
 function fmtResult(v){
   if(v===DONE) return 'Done';
   if(v&&v.str!==undefined) return v.str;
-  const fr=y=>fracStr(y)??fmtNum(y);
+  const fr=v&&v.mixed?(y=>mixedStr(y)??fmtNum(y)):(y=>fracStr(y)??fmtNum(y));
   if(v&&v.frac!==undefined){
     const x=v.frac;
     if(isMat(x)) return fmtMat(x.m,fr);
@@ -1090,6 +1117,7 @@ function callFn(name,args){
     }
     case '►Nom(':{ cnt(2,2); const cp=n(1); if(!(cp>0)) err('DOMAIN'); return 100*cp*Math.expm1(Math.log1p(n(0)/100)/cp); }
     case '►Eff(':{ cnt(2,2); const cp=n(1); if(!(cp>0)) err('DOMAIN'); return 100*Math.expm1(cp*Math.log1p(n(0)/100/cp)); }
+    case 'logBASE(':{ cnt(2,2); return bin(args[0],args[1],(x,b)=>{ if(x<0||b<0) err('NONREAL ANS'); if(x===0||b===0||b===1) err('DOMAIN'); return Math.log(x)/Math.log(b); }); }
     case 'dbd(':{ cnt(2,2); return Math.round((parseDate(args[1])-parseDate(args[0]))/86400000); }
     /* lists */
     case 'dim(':{ cnt(1,1); const v=args[0]; if(isMat(v)) return matDims(v); if(isList(v)) return v.length; err('DATA TYPE'); }
@@ -1219,6 +1247,50 @@ function startsPrimary(k){
   return /^[0-9.]$/.test(k)||k==='EE'||k==='neg'||k.endsWith('(')||k==='{'||k==='['||k==='π'||k==='econst'||k==='Ans'||k==='i'||
     isLetter(k)||isLvar(k)||isYv(k)||!!FINV[k]||!!WINV[k]||!!MATV[k]||k==='rand'||k.startsWith('tvm_')||k.startsWith('prgm')||k.startsWith('st:');
 }
+function bindVar(expr,v){
+  return x=>{ const had=Object.prototype.hasOwnProperty.call(S.vars,v), save=S.vars[v]; S.vars[v]=x;
+    try{ return num(evaluate(expr.slice())); } finally{ if(had) S.vars[v]=save; else delete S.vars[v]; } };
+}
+// adaptive Gauss–Kronrod (G7/K15); never evaluates the endpoints
+const GK={x:[0.991455371120812639,0.949107912342758525,0.864864423359769073,0.741531185599394440,0.586087235467691130,0.405845151377397167,0.207784955007898468,0],
+  wk:[0.022935322010529225,0.063092092629978553,0.104790010322250184,0.140653259715525919,0.169004726639267903,0.190350578064785410,0.204432940075298892,0.209482141084727828],
+  wg:[0.129484966168869693,0.279705391489276668,0.381830050505118945,0.417959183673469388]};
+function gk15(f,a,b){
+  const c=(a+b)/2, h=(b-a)/2, fc=f(c); let k=GK.wk[7]*fc, g=GK.wg[3]*fc;
+  for(let j=0;j<7;j++){ const d=h*GK.x[j], s=f(c-d)+f(c+d); k+=GK.wk[j]*s; if(j%2===1) g+=GK.wg[(j-1)/2]*s; }
+  return [k*h,g*h];
+}
+function integrate(f,a,b){
+  if(a===b) return 0;
+  let sgn=1; if(a>b){ [a,b]=[b,a]; sgn=-1; }
+  const g=x=>{ const y=f(x); if(!isFinite(y)) err('DOMAIN'); return y; };
+  const whole=gk15(g,a,b)[0], stack=[[a,b]]; let total=0, n=0, edge=false;
+  while(stack.length){
+    const [l,r]=stack.pop(), [k,gg]=gk15(g,l,r);
+    if(++n>4000){ edge=true; break; }
+    const ok=Math.abs(k-gg)<=1e-10*Math.max(1,Math.abs(whole))*(r-l)/(b-a);
+    if(ok||r-l<1e-12*(b-a)){ total+=k; if(!ok) edge=true; }
+    else { const m=(l+r)/2; stack.push([l,m],[m,r]); }
+  }
+  if(!edge) return sgn*total;
+  // an endpoint singularity (like 1/√X at 0): tanh-sinh handles those well
+  const ts=tanhSinh(g,a,b); if(ts===null) err('TOL NOT MET');
+  return sgn*ts;
+}
+function tanhSinh(f,a,b){
+  const L=b-a, node=t=>{ const u=Math.PI/2*Math.sinh(t), d=1/(1+Math.exp(2*u)); return {d,w:L*Math.PI*Math.cosh(t)*d*(1-d)}; };
+  const side=(t,sum)=>{ const {d,w}=node(t); if(!(d>1e-300)||!(w>0)) return sum;
+    const xl=a+L*d, xr=b-L*d; if(xl>a) sum+=w*f(xl); if(xr<b&&t!==0) sum+=w*f(xr); return sum; };
+  let h=1, S=0; for(let t=0;t<=4.5;t+=h) S=t===0?side(0,0)/1:side(t,S);
+  let prev=h*S;
+  for(let k=1;k<=9;k++){
+    h/=2; for(let t=h;t<=4.5;t+=2*h) S=side(t,S);
+    const cur=h*S;
+    if(k>=3&&Math.abs(cur-prev)<=1e-12*Math.max(1,Math.abs(cur))) return cur;
+    prev=cur;
+  }
+  return Math.abs(prev)<Infinity?prev:null;
+}
 class Parser{
   constructor(t){this.t=t;this.p=0;}
   peek(){return this.t[this.p];}
@@ -1247,7 +1319,36 @@ class Parser{
       else if(k==='!'){ this.next(); a=map1(a,fact); }
       else if(k==='deg'){ this.next(); a=map1(a,x=>S.modes.angle==='deg'?x:x*Math.PI/180); }
       else if(k==='rad'){ this.next(); a=map1(a,x=>S.modes.angle==='deg'?x*180/Math.PI:x); }
+      else if(k==='frac'){ this.next(); a=bin(a,this.fracPart(),dv); }
+      else if(k==='mixed'){ this.next(); const n=this.fracPart(); if(this.next()!=='frac') err('SYNTAX'); const d=this.fracPart();
+        a=bin(a,bin(n,d,dv),(w,f)=>w<0?w-f:w+f); }
       else break; } return a; }
+  fracPart(){ if(this.peek()==='neg'){ this.next(); return this.negate(this.fracPart()); } return this.prim(); }
+  // expr,var,... arguments whose first argument is evaluated later with var bound (Σ(, nDeriv(, fnInt(, fMin(, fMax()
+  lazyArgs(){
+    const start=this.p; let depth=0;
+    while(!this.atEnd()){ const t=this.peek(); if(depth===0&&t===',') break;
+      if(t.endsWith('(')||t==='{'||t==='[') depth++; else if(t===')'||t==='}'||t===']') depth--; this.next(); }
+    const expr=this.t.slice(start,this.p);
+    if(!expr.length||this.next()!==',') err('ARGUMENT');
+    const v=this.next(); if(!isLetter(v)) err('ARGUMENT');
+    if(this.next()!==',') err('ARGUMENT');
+    return {expr,v,args:this.args()};
+  }
+  calcFn(k){
+    const {expr,v,args}=this.lazyArgs(), f=bindVar(expr,v), n=i=>num(args[i]);
+    const cnt=(lo,hi)=>{ if(args.length<lo||args.length>hi) err('ARGUMENT'); };
+    switch(k){
+      case 'Σ(':{ cnt(2,2); const lo=n(0), hi=n(1); if(!Number.isInteger(lo)||!Number.isInteger(hi)) err('DOMAIN'); if(hi-lo>100000) err('DOMAIN');
+        let s=0; for(let x=lo;x<=hi;x++) s+=f(x); return s; }
+      case 'nDeriv(':{ cnt(1,2); const x=n(0), h=args.length>1?n(1):1e-3; if(!(h>0)) err('DOMAIN'); return (f(x+h)-f(x-h))/(2*h); }
+      case 'fnInt(':{ cnt(2,3); return integrate(f,n(0),n(1)); }
+      case 'fMin(': case 'fMax(':{ cnt(2,3); const lo=n(0), hi=n(1); if(!(lo<hi)) err('DOMAIN');
+        const g=x=>{ try{ return f(x); }catch(e){ if(e instanceof TIError) return NaN; throw e; } };
+        return extremum(g,lo,hi,k==='fMax('); }
+    }
+    err('SYNTAX');
+  }
   args(){ if(this.peek()===')'){ this.next(); return []; } const a=[this.rel()]; while(this.peek()===','){ this.next(); a.push(this.rel()); } this.close(')'); return a; }
   number(){
     let s='',dot=false;
@@ -1317,6 +1418,7 @@ class Parser{
     if(k.startsWith('prgm')) return runPrgm(k.slice(4));
     if(CMD[k]) return CMD[k](this);
     if(k==='seq(') return this.seq();
+    if(k==='Σ('||k==='nDeriv('||k==='fnInt('||k==='fMin('||k==='fMax(') return this.calcFn(k);
     if(k==='SortA('||k==='SortD('){
       const nm=this.next(); if(!isLvar(nm)) err('ARGUMENT'); this.close(')');
       const L=S.lists[nm]; if(!L||!L.length) err('INVALID DIM');
@@ -1349,16 +1451,22 @@ function store(tg,v){
 function evalStatement(tk){
   let conv=null;
   const last=tk[tk.length-1];
-  if(last==='►Frac'||last==='►Dec'||last==='►DMS'){ conv=last; tk=tk.slice(0,-1); }
+  if(['►Frac','►Dec','►DMS','►F◄►D','►n/d◄►Un/d'].includes(last)){ conv=last; tk=tk.slice(0,-1); }
   const idx=tk.lastIndexOf('→'); let target=null;
   if(idx>=0){ target=tk.slice(idx+1); tk=tk.slice(0,idx); }
   if(!tk.length) err('SYNTAX');
   const P=new Parser(tk); let v=P.rel(); if(!P.atEnd()) err('SYNTAX');
   checkVal(v);
   if(target) store(target,v);
-  if(conv==='►Frac') return {frac:v};
   if(conv==='►DMS'){ if(typeof v!=='number'&&!isList(v)) err('DATA TYPE'); return {dms:v}; }
-  return v;
+  const hasM=tk.includes('mixed'), hasF=hasM||tk.includes('frac');
+  const base=tk.length===1&&tk[0]==='Ans'?(S.lastFmt||'dec'):hasF&&!tk.includes('.')?(hasM?'mixed':'frac'):'dec';
+  let fmt=base;
+  if(conv==='►Frac') fmt='frac'; else if(conv==='►Dec') fmt='dec';
+  else if(conv==='►F◄►D') fmt=base==='dec'?'frac':'dec';
+  else if(conv==='►n/d◄►Un/d') fmt=base==='mixed'?'frac':'mixed';
+  if(fmt==='dec'||v===DONE||(v&&typeof v==='object'&&!isList(v)&&!isMat(v))) return v;
+  return fmt==='mixed'?{frac:v,mixed:true}:{frac:v};
 }
 function evaluate(tokens){
   try{
@@ -1411,7 +1519,7 @@ function edPaste(E,tok){
   if(S.rcl){ S.rcl=false; const t=rclTokens(tok); if(t){ t.forEach(x=>edInsert(E,x)); return; } }
   edInsert(E,tok);
 }
-const AUTO_ANS=new Set(['+','-','*','/','^','²','³','inv','→','!','nPr','nCr','►Frac','►Dec','►DMS','=','≠','>','≥','<','≤','tr','deg','rad']);
+const AUTO_ANS=new Set(['+','-','*','/','^','²','³','inv','→','!','nPr','nCr','►Frac','►Dec','►DMS','►F◄►D','►n/d◄►Un/d','=','≠','>','≥','<','≤','tr','deg','rad']);
 function homeInsert(tok){
   const E=S.ed;
   if(S.rcl||tok==='st:RegEQ') return edPaste(E,tok);
@@ -1426,14 +1534,15 @@ function homeEnter(){
   S.entries.push(toks.slice()); if(S.entries.length>20) S.entries.shift();
   S.entryIdx=-1; S.insert=false;
   S.ed={t:[],c:0};
-  const h={in:input,out:null}; S.history.push(h);
+  const h={in:input,inT:toks.slice(),out:null}; S.history.push(h); S.hsel=null;
   S._graph=false;
   try{
     const v=evaluate(toks.slice());
     if(v&&v.info){ S.history.push({in:'',out:'Done'}); S.info={lines:v.info,top:0}; S.screen='info'; }
     else {
       const isStr=!!(v&&v.str!==undefined);
-      S.history.push({in:'',out:fmtResult(v),left:isStr});
+      S.history.push({in:'',out:fmtResult(v),left:isStr,outT:valToTokens(v)});
+      if(v!==DONE&&!isStr) S.lastFmt=v&&v.frac!==undefined?(v.mixed?'mixed':'frac'):'dec';
       if(v!==DONE&&!isStr){ S.ans=v&&v.frac!==undefined?v.frac:v&&v.dms!==undefined?v.dms:v; S.hasAns=true; }
     }
     if(S._graph&&S.screen==='home') openGraph();
@@ -1448,10 +1557,16 @@ function moveLine(d){
   const E=S.ed; const starts=[]; let pos=0;
   for(const t of E.t){ starts.push(pos); pos+=[...disp(t)].length; }
   const cur=E.c<E.t.length?starts[E.c]:pos; const target=cur+d*W;
-  if(target<0||target>pos) return;
-  if(target===pos){ E.c=E.t.length; return; }
+  if(target<0||target>pos) return false;
+  if(target===pos){ E.c=E.t.length; return true; }
   let idx=0; for(let i=0;i<starts.length;i++) if(starts[i]<=target) idx=i;
-  E.c=idx;
+  E.c=idx; return true;
+}
+// entries and answers on the home screen that ▲ can highlight and ENTER can paste
+function histItems(){
+  const out=[];
+  S.history.forEach(h=>{ if(h.in&&h.inT&&h.inT.length) out.push({h,kind:'in',t:h.inT}); if(h.out!=null&&h.outT&&h.outT.length) out.push({h,kind:'out',t:h.outT}); });
+  return out;
 }
 // the token buffer that typed keys go into on the current screen
 function activeEd(create){
@@ -1471,7 +1586,7 @@ function activeEd(create){
 function goHome(){
   if(S.screen==='prgmname') S.alock=false;
   if(S.ped){ if(!S.ped.t.length) delete S.prgms[S.ped.name]; S.ped=null; }
-  S.screen='home'; S.menu=null; S.tvmEdit=null; S.err=null; S.rcl=false;
+  S.screen='home'; S.menu=null; S.tvmEdit=null; S.err=null; S.rcl=false; S.hsel=null;
 }
 function showError(code,ret,tokens){ S.err={code,ret,sel:0,tokens:tokens||null}; S.screen='error'; S.menu=null; }
 function openTVM(){ S.screen='tvm'; S.menu=null; S.tvmRow=0; S.tvmEdit=null; }
@@ -1481,7 +1596,7 @@ const CATALOG_TOKENS=['abs(','augment(','bal(','binomcdf(','binompdf(','Circle('
   'e^(','ExpReg ','fPart(','gcd(','geometcdf(','geometpdf(','Horizontal ','identity(','int(','invNorm(','iPart(','irr(','lcm(','Line(','LinReg(ax+b) ','ln(','log(',
   'max(','mean(','median(','min(','nCr','normalcdf(','normalpdf(','npv(','nPr','PlotsOff','PlotsOn','Pmt_Bgn','Pmt_End','poissoncdf(','poissonpdf(','prod(','P►Rx(','P►Ry(',
   'QuadReg ','rand','randInt(','round(','R►Pr(','R►Pθ(','seq(','sin(','sin⁻¹(','SortA(','SortD(','stdDev(','sum(','tan(','tan⁻¹(','tvm_FV','tvm_I%','tvm_N','tvm_Pmt','tvm_PV',
-  'variance(','Vertical ','Med-Med ','CubicReg ','QuartReg ','LinReg(a+bx) ','LnReg ','PwrReg ','Logistic ','SinReg ','ANOVA(','tpdf(','tcdf(','invT(','χ²pdf(','χ²cdf(','Fpdf(','Fcdf(','ShadeNorm(','Shade_t(','Shadeχ²(','ShadeF(','ΔList(','ΣInt(','ΣPrn(','►DMS','►Dec','►Eff(','►Frac','►Nom(','!','10^(','√(','³√(','1-Var Stats ','2-Var Stats '];
+  'variance(','Vertical ','Med-Med ','CubicReg ','QuartReg ','LinReg(a+bx) ','LnReg ','PwrReg ','Logistic ','SinReg ','ANOVA(','tpdf(','tcdf(','invT(','χ²pdf(','χ²cdf(','Fpdf(','Fcdf(','ShadeNorm(','Shade_t(','Shadeχ²(','ShadeF(','ΔList(','ΣInt(','ΣPrn(','►DMS','►Dec','►Eff(','►Frac','►Nom(','►F◄►D','►n/d◄►Un/d','fMin(','fMax(','nDeriv(','fnInt(','Σ(','logBASE(','!','10^(','√(','³√(','1-Var Stats ','2-Var Stats '];
 const stdWin=()=>{ S.win=defWin(); };
 function zoomAbout(f){ const w=S.win; let cx=(w.Xmin+w.Xmax)/2, cy=(w.Ymin+w.Ymax)/2;
   if(S.gcur){ cx=w.Xmin+S.gcur.i*(w.Xmax-w.Xmin)/94; cy=w.Ymin+S.gcur.j*(w.Ymax-w.Ymin)/62; }
@@ -1492,6 +1607,11 @@ function zoomFit(){ const w=S.win, f=onFns(); let lo=Infinity,hi=-Infinity;
   if(!isFinite(lo)) return; if(lo===hi){ lo-=1; hi+=1; } w.Ymin=lo; w.Ymax=hi; }
 const Z=(label,fn)=>[label,()=>{ if(fn()!==false) openGraph(); }];
 const MENUS={
+  shortcut:{tabs:[
+    {name:'FRAC',items:[['n/d','frac'],['Un/d','mixed'],['►n/d◄►Un/d','►n/d◄►Un/d'],['►F◄►D','►F◄►D']]},
+    {name:'FUNC',items:[['summation Σ(','Σ('],['nDeriv(','nDeriv('],['fnInt(','fnInt('],['logBASE(','logBASE(']]},
+    {name:'MTRX',items:tokItems(['mA','mB','mC'])},
+    {name:'YVAR',items:tokItems(['Y1','Y2','Y3','Y4'])}]},
   apps:{tabs:[{name:'APPLICATIONS',items:[['Finance...',()=>openMenu('finance',0)]]}]},
   finance:{tabs:[
     {name:'CALC',items:[['TVM Solver...',()=>openTVM()],...tokItems(['tvm_Pmt','tvm_I%','tvm_PV','tvm_N','tvm_FV','npv(','irr(','bal(','ΣPrn(','ΣInt(','►Nom(','►Eff(','dbd(','Pmt_End','Pmt_Bgn'])]},
@@ -1507,8 +1627,8 @@ const MENUS={
     {name:'TEST',items:tokItems(['p','z','t','χ²','F','df','p̂','p̂₁','p̂₂','s','x̄₁','x̄₂','Sx₁','Sx₂','Sxp','n₁','n₂','lower','upper'].map(k=>'st:'+k))},
     {name:'PTS',items:tokItems(['Q₁','Med','Q₃'].map(k=>'st:'+k))}]},
   math:{tabs:[
-    {name:'MATH',items:tokItems(['►Frac','►Dec','³','³√(','xroot'])},
-    {name:'NUM',items:tokItems(['abs(','round(','iPart(','fPart(','int(','min(','max(','lcm(','gcd('])},
+    {name:'MATH',items:tokItems(['►Frac','►Dec','³','³√(','xroot','fMin(','fMax(','nDeriv(','fnInt(','Σ(','logBASE('])},
+    {name:'NUM',items:tokItems(['abs(','round(','iPart(','fPart(','int(','min(','max(','lcm(','gcd(','►n/d◄►Un/d','►F◄►D'])},
     {name:'PRB',items:tokItems(['rand','nPr','nCr','!','randInt('])}]},
   test:{tabs:[{name:'TEST',items:tokItems(['=','≠','>','≥','<','≤'])}]},
   angle:{tabs:[{name:'ANGLE',items:tokItems(['deg','rad','►DMS','R►Pr(','R►Pθ(','P►Rx(','P►Ry('])}]},
@@ -1940,6 +2060,16 @@ function infoKey(a){
 function infoLines(){ const out=[]; S.info.lines.forEach(l=>out.push(...wrap(cellsOf(l)))); return out; }
 function homeKey(a){
   const E=S.ed;
+  if(S.hsel!=null){
+    const items=histItems();
+    switch(a){
+      case 'UP': S.hsel=Math.min(items.length-1,S.hsel+1); return;
+      case 'DOWN': S.hsel--; if(S.hsel<0) S.hsel=null; return;
+      case 'ENTER':{ const it=items[items.length-1-S.hsel]; S.hsel=null; if(it){ E.t.splice(E.c,0,...it.t); E.c+=it.t.length; } return; }
+      case 'CLEAR': S.hsel=null; return;
+      default: S.hsel=null;
+    }
+  }
   if(a.startsWith('T:')) return homeInsert(a.slice(2));
   switch(a){
     case 'ENTER': homeEnter(); break;
@@ -1950,7 +2080,7 @@ function homeKey(a){
     case 'RIGHT': if(E.c<E.t.length) E.c++; S.insert=false; break;
     case 'HOME': E.c=0; break;
     case 'END': E.c=E.t.length; break;
-    case 'UP': moveLine(-1); break;
+    case 'UP': if(!moveLine(-1)&&histItems().length) S.hsel=0; break;
     case 'DOWN': moveLine(1); break;
     case 'ENTRY':{
       if(!S.entries.length) break;
@@ -1979,6 +2109,7 @@ function doAction(a){
   if(a==='RCL'){ if(activeEd(false)||['tvm','form','listed'].includes(S.screen)){ S.rcl=true; S.shift='alpha'; } return; }
   if(a.startsWith('MENU:')) return openMenu(a.slice(5),0);
   if(a==='APPS') return openMenu('apps',0);
+  if(a.startsWith('FMENU:')) return openMenu('shortcut',+a.slice(6));
   if(a==='VARS') return openMenu('vars',0);
   switch(S.screen){
     case 'home': return homeKey(a);
@@ -2000,7 +2131,7 @@ function resetAll(){
   Object.assign(S,{screen:'home',shift:null,alock:false,insert:false,ed:{t:[],c:0},history:[],entries:[],entryIdx:-1,ans:0,hasAns:false,
     vars:{},lists:{},tvm:defTVM(),modes:defModes(),contrast:0,menu:null,err:null,tvmRow:0,tvmEdit:null,tvmSolved:null,
     yf:[[],[],[],[]],yon:[true,true,true,true],yRow:0,yEd:null,win:defWin(),tblset:{start:0,step:1},fmt:defFmt(),plots:defPlots(),draws:[],prgms:{},mats:{},stat:{},tp:defTP(),
-    form:null,gcur:null,trace:null,info:null,ped:null,rcl:false});
+    form:null,gcur:null,trace:null,info:null,ped:null,rcl:false,hsel:null,lastFmt:'dec'});
   S.history.push({in:'',out:'RAM cleared'});
 }
 
@@ -2011,23 +2142,31 @@ const cellsOf=s=>chars(s).map(ch=>({ch}));
 function wrap(arr){ if(!arr.length) return [[]]; const out=[]; for(let i=0;i<arr.length;i+=W) out.push(arr.slice(i,i+W)); return out; }
 const pad=(s,w)=>{ const c=chars(s); return c.length>=w?c.slice(0,w).join(''):s+' '.repeat(w-c.length); };
 function homeModel(){
-  const lines=[];
+  const lines=[], items=histItems(), sel=S.hsel!=null?items[items.length-1-S.hsel]:null;
+  let s0=-1, s1=-1;
+  const mark=(isSel,cells)=>isSel?cells.map(c=>c.ch===' '?c:{...c,inv:true}):cells;
   for(const h of S.history){
-    if(h.in) lines.push(...wrap(cellsOf(h.in)));
+    if(h.in){ const isSel=!!sel&&sel.h===h&&sel.kind==='in'; if(isSel) s0=lines.length;
+      wrap(cellsOf(h.in)).forEach(l=>lines.push(mark(isSel,l))); if(isSel) s1=lines.length-1; }
     if(h.out==null) continue;
+    const isSel=!!sel&&sel.h===h&&sel.kind==='out'; if(isSel) s0=lines.length;
     for(const part of h.out.split('\n')){
       let o=chars(part); if(o.length>W) o=o.slice(0,W-1).concat('…');
-      const cells=o.map(ch=>({ch}));
+      const cells=mark(isSel,o.map(ch=>({ch})));
       lines.push(h.left?cells:Array(W-o.length).fill(BLANK).concat(cells));
     }
+    if(isSel) s1=lines.length-1;
   }
   if(S.rcl) lines.push(cellsOf('Rcl ').concat([{ch:' ',cur:true}]));
   else lines.push(...wrap(edChars(S.ed).chars));
-  return lines.slice(-H);
+  if(s0<0) return lines.slice(-H);
+  let start=Math.max(0,lines.length-H); if(s0<start) start=s0; if(s1>=start+H) start=Math.max(0,s1-H+1);
+  return lines.slice(start,start+H);
 }
 function menuModel(){
   const m=S.menu, M=MENUS[m.id], L=[];
-  const top=[]; M.tabs.forEach((tb,i)=>{ if(i) top.push(BLANK); for(const ch of chars(tb.name)) top.push({ch,inv:i===m.tab}); });
+  const tight=M.tabs.reduce((n,tb)=>n+chars(tb.name).length,0)+M.tabs.length-1>W;
+  const top=[]; M.tabs.forEach((tb,i)=>{ if(i&&!tight) top.push(BLANK); for(const ch of chars(tb.name)) top.push({ch,inv:i===m.tab}); });
   L.push(top.slice(0,W));
   const items=tabItems(M.tabs[m.tab]);
   if(!items.length) L.push(cellsOf(m.id==='prgm'||m.id==='prgmio'?'(no programs)':'(empty)'));
@@ -2175,10 +2314,10 @@ function screenModel(){
 /* ================= keys ================= */
 const K=(id,label,m,l2,s,la,a,cls,aria)=>({id,label,m,l2,s,la,a,cls,aria});
 const KEYS=[
-  K('yeq','Y=','YEQ','STAT PLOT','MENU:splot',null,null,'top'),
-  K('window','WINDOW','WINDOW','TBLSET','TBLSET',null,null,'top'),
-  K('zoom','ZOOM','MENU:zoom','FORMAT','FORMAT',null,null,'top'),
-  K('trace','TRACE','TRACE','CALC','MENU:calc',null,null,'top'),
+  K('yeq','Y=','YEQ','STAT PLOT','MENU:splot','F1','FMENU:0','top'),
+  K('window','WINDOW','WINDOW','TBLSET','TBLSET','F2','FMENU:1','top'),
+  K('zoom','ZOOM','MENU:zoom','FORMAT','FORMAT','F3','FMENU:2','top'),
+  K('trace','TRACE','TRACE','CALC','MENU:calc','F4','FMENU:3','top'),
   K('graph','GRAPH','GRAPH','TABLE','TABLE',null,null,'top'),
   K('second','2nd','2ND',null,'2ND',null,null,'second'),
   K('mode','MODE','MODE','QUIT','QUIT'),
@@ -2502,7 +2641,7 @@ function minusOrNeg(){
   if(!E) return S.screen==='graph'?'sub':'neg';
   const prev=E.t[E.c-1];
   if(prev===undefined) return 'neg';
-  if(['+','-','*','/','^','(',',','{','[','neg','→','=','≠','>','≥','<','≤','EE',':','nPr','nCr','xroot'].includes(prev)||prev.endsWith('(')) return 'neg';
+  if(['+','-','*','/','^','(',',','{','[','neg','→','=','≠','>','≥','<','≤','EE',':','nPr','nCr','xroot','frac','mixed'].includes(prev)||prev.endsWith('(')) return 'neg';
   return 'sub';
 }
 

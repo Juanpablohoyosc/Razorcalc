@@ -15,6 +15,9 @@ A graphing and finance calculator built for student-athletes. It runs entirely i
 - **VARS → Statistics:** every result (x̄, Sx, r, p, RegEQ, …) can be used in formulas
 - **Matrices:** `[A]`–`[C]` with an editor, `det(`, transpose, inverse, `identity(`
 - **Programs and drawing:** short programs with `Disp`; ClrDraw, Line, Horizontal, Vertical, Circle
+- **Fractions:** n/d and mixed-number entry (ALPHA + Y=), fraction answers, ►F◄►D and ►n/d◄►Un/d conversions
+- **Calculus:** nDeriv(, fnInt(, Σ(, fMin(, fMax(, logBASE(
+- **History:** ▲ highlights earlier entries and answers on the home screen; ENTER pastes them into the current line
 - **Other:** MODE (Float/Fix, Sci/Eng, Radian/Degree), angle conversions, RCL, catalog, and keyboard input
 - **Calculator-only view:** turns on automatically on phones; open it anywhere with `#calc`, e.g. `https://juanpablohoyosc.github.io/Razorcalc/#calc`
 
