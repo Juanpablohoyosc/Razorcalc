@@ -227,7 +227,7 @@ dialog::backdrop{background:rgba(20,8,11,.6)}
     <p class="small"><kbd class="k2">2nd</kbd> <kbd>Y=</kbd> sets up three stat plots (scatter, line, histogram and box plots). <kbd>ZOOM</kbd> ZoomStat fits them to the screen, and <kbd>TRACE</kbd> steps through the points. <kbd class="k2">2nd</kbd> <kbd>VARS</kbd> has the normal, t, χ², F, binomial, Poisson and geometric distributions, with shaded graphs under DRAW. <kbd>VARS</kbd> <kbd>2</kbd> pastes results such as x̄, Sx, r or p into your own formulas.</p>
 
     <h2>Fractions and history</h2>
-    <p><kbd class="ka">ALPHA</kbd> <kbd>Y=</kbd> opens the fraction menu. Type the top number, choose <b>n/d</b>, then type the bottom number: <code>1⁄2+1⁄3</code> gives <code>5⁄6</code>. <b>Un/d</b> makes mixed numbers (<code>1⌟1⁄2</code> is one and a half), and <b>►F◄►D</b> switches an answer between fraction and decimal.</p>
+    <p><kbd class="ka">ALPHA</kbd> <kbd>Y=</kbd> opens the fraction menu. Choose <b>n/d</b> to get an empty fraction <code>□⁄□</code>: type the top number, press <kbd>▼</kbd> (or <kbd>▶</kbd>), then type the bottom number. <code>1⁄2+1⁄3</code> gives <code>5⁄6</code>. <b>Un/d</b> makes mixed numbers (<code>1⌟1⁄2</code> is one and a half), and <b>►F◄►D</b> switches an answer between fraction and decimal. <b>nCr</b> and <b>nPr</b> (<kbd>MATH</kbd> ◀ PRB) work the same way: <code>□ nCr □</code>.</p>
     <p>Press <kbd>▲</kbd> on the home screen to highlight an earlier entry or answer, then <kbd>ENTER</kbd> to paste it into your current line. <kbd class="k2">2nd</kbd> <kbd>ENTER</kbd> brings back your last entries.</p>
 
     <h2>Everything else</h2>
@@ -270,7 +270,7 @@ const FINV={'fN':'N','fI%':'I','fPV':'PV','fPMT':'PMT','fFV':'FV','fP/Y':'PY','f
 const WINV={wXmin:'Xmin',wXmax:'Xmax',wXscl:'Xscl',wYmin:'Ymin',wYmax:'Ymax',wYscl:'Yscl'};
 const MATV={mA:'A',mB:'B',mC:'C'};
 const DISP={neg:'⁻',inv:'⁻¹',EE:'ᴇ',econst:'e',L1:'L₁',L2:'L₂',L3:'L₃',L4:'L₄',L5:'L₅',L6:'L₆',
-  fN:'N','fI%':'I%',fPV:'PV',fPMT:'PMT',fFV:'FV','fP/Y':'P/Y','fC/Y':'C/Y',nPr:' nPr ',nCr:' nCr ',xroot:'ˣ√',frac:'⁄',mixed:'⌟',
+  fN:'N','fI%':'I%',fPV:'PV',fPMT:'PMT',fFV:'FV','fP/Y':'P/Y','fC/Y':'C/Y',nPr:' nPr ',nCr:' nCr ',xroot:'ˣ√',frac:'⁄',mixed:'⌟',box:'□',
   Y1:'Y₁',Y2:'Y₂',Y3:'Y₃',Y4:'Y₄',mA:'[A]',mB:'[B]',mC:'[C]',deg:'°',rad:'ʳ',tr:'ᵀ',
   wXmin:'Xmin',wXmax:'Xmax',wXscl:'Xscl',wYmin:'Ymin',wYmax:'Ymax',wYscl:'Yscl'};
 const disp=t=>DISP[t]??(typeof t==='string'&&t.startsWith('st:')?t.slice(3):t);
@@ -1488,9 +1488,38 @@ function evaluate(tokens){
 }
 
 /* ================= editing ================= */
+// fraction, mixed-number and nPr/nCr templates: □⁄□, □⌟□⁄□, □ nCr □
+const TEMPLATES=new Set(['frac','mixed','nPr','nCr']);
+function operandBefore(E){
+  const p=E.t[E.c-1];
+  return p!==undefined&&(/^[0-9.]$/.test(p)||[')','}',']','π','econst','Ans','²','³','!','inv','tr','deg','rad'].includes(p)||
+    isLetter(p)||isLvar(p)||isYv(p)||!!MATV[p]||!!FINV[p]||!!WINV[p]||p.startsWith('st:'));
+}
+function insertTemplate(E,tok){
+  const has=operandBefore(E);
+  const parts=tok==='frac'?(has?['frac','box']:['box','frac','box'])
+    :tok==='mixed'?(has?['mixed','box','frac','box']:['box','mixed','box','frac','box'])
+    :(has?[tok,'box']:['box',tok,'box']);
+  if(E.t[E.c]==='box') E.t.splice(E.c,1);
+  E.t.splice(E.c,0,...parts);
+  E.c+=parts.indexOf('box');
+}
 function edInsert(E,tok){
-  if(S.insert||E.c>=E.t.length) E.t.splice(E.c,0,tok); else E.t[E.c]=tok;
+  if(TEMPLATES.has(tok)) return insertTemplate(E,tok);
+  if(E.t[E.c]==='box'){ E.t[E.c]=tok; E.c++; return; }
+  // overwrite mode never overwrites a template's ⁄, ⌟, nPr or nCr
+  if(S.insert||E.c>=E.t.length||TEMPLATES.has(E.t[E.c])) E.t.splice(E.c,0,tok); else E.t[E.c]=tok;
   E.c++;
+}
+// ▼/▲ move between a fraction's top and bottom
+const FRAC_STOP=new Set(['+','-','*','/','^','→',',','(',')','{','}','[',']','=','≠','>','≥','<','≤','nPr','nCr','mixed',':',' ','frac']);
+const inPart=t=>!FRAC_STOP.has(t)&&!t.endsWith('(');
+function fracJump(E,d){
+  if(d>0){ for(let j=E.c;j<E.t.length;j++){ const t=E.t[j]; if(t==='frac'||t==='mixed'){ E.c=j+1; return true; } if(!inPart(t)) break; } return false; }
+  for(let k=E.c-1;k>=0;k--){ const t=E.t[k];
+    if(t==='frac'){ let s0=k; while(s0>0&&inPart(E.t[s0-1])) s0--; E.c=s0; return true; }
+    if(!inPart(t)) break; }
+  return false;
 }
 function edDel(E){ if(E.c<E.t.length) E.t.splice(E.c,1); else if(E.c>0){ E.t.splice(E.c-1,1); E.c--; } }
 const chars_=s=>s.match(/[\s\S][\u0300-\u036f]*/gu)||[];
@@ -1519,7 +1548,7 @@ function edPaste(E,tok){
   if(S.rcl){ S.rcl=false; const t=rclTokens(tok); if(t){ t.forEach(x=>edInsert(E,x)); return; } }
   edInsert(E,tok);
 }
-const AUTO_ANS=new Set(['+','-','*','/','^','²','³','inv','→','!','nPr','nCr','►Frac','►Dec','►DMS','►F◄►D','►n/d◄►Un/d','=','≠','>','≥','<','≤','tr','deg','rad']);
+const AUTO_ANS=new Set(['+','-','*','/','^','²','³','inv','→','!','►Frac','►Dec','►DMS','►F◄►D','►n/d◄►Un/d','=','≠','>','≥','<','≤','tr','deg','rad']);
 function homeInsert(tok){
   const E=S.ed;
   if(S.rcl||tok==='st:RegEQ') return edPaste(E,tok);
@@ -2080,8 +2109,8 @@ function homeKey(a){
     case 'RIGHT': if(E.c<E.t.length) E.c++; S.insert=false; break;
     case 'HOME': E.c=0; break;
     case 'END': E.c=E.t.length; break;
-    case 'UP': if(!moveLine(-1)&&histItems().length) S.hsel=0; break;
-    case 'DOWN': moveLine(1); break;
+    case 'UP': if(fracJump(E,-1)) break; if(!moveLine(-1)&&histItems().length) S.hsel=0; break;
+    case 'DOWN': if(!fracJump(E,1)) moveLine(1); break;
     case 'ENTRY':{
       if(!S.entries.length) break;
       S.entryIdx=(S.entryIdx+1)%S.entries.length;
